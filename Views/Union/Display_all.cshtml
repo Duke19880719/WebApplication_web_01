@@ -1,0 +1,59 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+@model Union_Data_Struct
+<p style="border-bottom:double;">Search && Display_all</p>
+@foreach(var s in Model.student_list){
+    <a asp-route-id=@s.student_no asp-action="Delete_userid">Delete_userid</a>
+    <h1 style="white-space: nowrap;">student_no : @s.student_no </h1>
+    <h2 style="white-space: nowrap;">name: @s.name </h2>
+    <h3 style="border-bottom: solid;white-space: nowrap;">depart_id: @s.depart_id </h3>
+    
+ 
+}
+<br />
+<p style="border-bottom:double;"> Create && Insert</p>
+
+<form asp-action="Create" method="post">
+    <label asp-for="student.student_no">student_no</label>
+    <input asp-for="student.student_no" />
+
+    <label asp-for="student.name">name</label>
+    <input asp-for="student.name" />
+
+    <label asp-for="student.depart_id">depart_id</label>
+    <input asp-for="student.depart_id" />
+
+    <input type="submit" value="Create" class="btn btn-primary" />
+
+</form>
+
+<br />
+<p style="border-bottom:double;"> Update</p>
+
+<form asp-action="Update" method="post">
+    <label asp-for="student.student_no">student_no</label>
+    <input asp-for="student.student_no" />
+
+    <label asp-for="student.name">name</label>
+    <input asp-for="student.name" />
+
+    <label asp-for="student.depart_id">depart_id</label>
+    <input asp-for="student.depart_id" />
+
+    <input type="submit" value="Update" class="btn btn-primary" />
+
+</form>
+
+<br />
+<p style="border-bottom:double;"> Delete</p>
+
+<form asp-action="Delete" method="post">
+    <label asp-for="student.student_no">student_no</label>
+    <input asp-for="student.student_no" />
+
+    <input type="submit" value="Delete" class="btn btn-primary" />
+
+</form>

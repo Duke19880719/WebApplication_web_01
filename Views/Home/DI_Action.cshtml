@@ -1,0 +1,31 @@
+﻿@using WebApplication_web_01.Models.Interface
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+@inject BankService view_di
+@* 用 inject 宣告相依性注入 *@
+<p>view di 實作 :</p>
+<ul>
+    <li>@view_di.BankId</li>
+    <li>@view_di.BankName</li>
+    <li>@view_di.Deposit</li>
+</ul>
+@* view_di 相依性物件實例 *@
+
+
+<p>action di 實作 :</p>
+<ul>
+    <li>@ViewData["BankId"]</li>
+    <li>@ViewData["BankName"]</li>
+    <li>@ViewData["Deposit"]</li>
+</ul>
+
+
+@inject IConfiguration config
+
+<p>@config["test_inject_configuration"]</p>
+
+

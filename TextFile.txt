@@ -1,0 +1,311 @@
+﻿各個檔案間的邏輯說明：
+
+1. appsettings.json (設定檔案)
+
+
+"ConnectionStrings": {
+  "db_string": "Server=DESKTOP-TVCT7JK\\SQLEXPRESS;Initial Catalog=test;Integrated Security=True ;Trusted_Connection=True;TrustServerCertificate=true;"
+}
+這個檔案用來儲存應用程式的設定，其中包含了 資料庫連接字串 (db_string)，這個字串會被應用程式用來連接 SQL Server 資料庫。
+在這裡，db_string 連接到本地的 SQL Server 實例 DESKTOP-TVCT7JK\SQLEXPRESS，並選擇名為 test 的資料庫。Integrated Security=True 表示使用 Windows 身份驗證來連接資料庫。
+
+
+2. Program.cs (應用程式啟動與依賴注入設定)
+
+
+builder.Services.AddDbContext<DB_Context>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("db_string")));
+
+// 註冊介面與實作，藉由 DI 提供資料存取服務
+builder.Services.AddScoped<Interface_school, A_School>();
+
+DbContext 設定：
+AddDbContext<DB_Context> 是用來設定 Entity Framework Core 來使用 SQL Server 資料庫。此方法會從 appsettings.json 中讀取資料庫連接字串（db_string），並將其提供給 DB_Context 這個 DbContext 類別來建立資料庫連接。
+options.UseSqlServer() 表示使用 SQL Server 作為資料庫，並將連接字串傳入配置中。
+依賴注入 (Dependency Injection, DI)：
+builder.Services.AddScoped<Interface_school, A_School>(); 這行程式碼將 Interface_school 介面和 A_School 類別註冊到 DI 容器中，這樣在應用程式中任何需要 Interface_school 的地方，會自動注入 A_School 類別的實例。
+
+
+3. Interface_school.cs (定義介面)
+
+
+namespace WebApplication_web_01.Models.Interface
+{
+    public interface Interface_school
+    {
+        IEnumerable<db_student_model> Get();
+
+        db_student_model get_by_id(int id);
+
+        Task Add (db_student_model student);
+
+        Task Update(db_student_model student);
+
+        Task Delete(string id);
+    }
+}
+這個檔案定義了一個介面 Interface_school，它是資料存取層的合約。所有實作此介面的類別，必須提供以下方法：
+Get(): 取得所有學生的資料，回傳 IEnumerable<db_student_model>。
+get_by_id(int id): 根據學生的 id 取得一個學生資料。
+Add(db_student_model student): 增加一個新的學生資料。
+Update(db_student_model student): 更新一個學生資料。
+Delete(string id): 刪除指定 id 的學生資料。
+
+
+4. A_School.cs (介面實作)
+
+
+using Microsoft.AspNetCore.Mvc;
+using WebApplication_web_01.Models.Db_context;
+using WebApplication_web_01.Models.Interface;
+
+namespace WebApplication_web_01.Models
+{
+    public class A_School : Interface_school
+    {
+        private DB_Context Db_Context;
+        public A_School(DB_Context DbContext) {
+            Db_Context = DbContext;
+        }
+
+        public async Task Add(db_student_model student)
+        {
+            Db_Context.student.Add(student);
+            await Db_Context.SaveChangesAsync();
+        }
+
+        public IEnumerable<db_student_model> Get()
+        {
+            return Db_Context.student.ToList();
+        }
+
+        public db_student_model get_by_id(int id)
+        {
+            return Db_Context.student.Find(id);
+        }
+
+        public async Task Update(db_student_model student)
+        {
+            Db_Context.student.Update(student);
+            await Db_Context.SaveChangesAsync();
+        }
+
+        public async Task Delete(string id)
+        {
+            var obj = Db_Context.student.Find(id);
+            if (obj != null)
+            {
+                Db_Context.student.Remove(obj);
+                await Db_Context.SaveChangesAsync();
+            }
+        }
+    }
+}
+A_School 類別實作了 Interface_school 介面，並提供具體的資料操作方法。
+建構子注入 DB_Context，這樣 A_School 類別可以使用 DbContext 來操作資料庫。
+實作的五個方法：
+Add: 接受一個 db_student_model 物件，並將其加入到 student 資料集中，最後呼叫 SaveChangesAsync() 儲存變更。
+Get: 取得所有 student 資料並轉換成清單 (List) 回傳。
+get_by_id: 根據學生 id 查詢對應的資料，並回傳 db_student_model 物件。
+Update: 更新資料庫中的一筆學生資料，並儲存變更。
+Delete: 根據學生 id 刪除該學生資料。
+
+
+總結邏輯：
+設定資料庫連接： Program.cs 通過 builder.Services.AddDbContext 將資料庫連接字串從 appsettings.json 中讀取並設定給 DbContext。
+資料存取： Interface_school 定義了資料操作的接口，並且 A_School 類別實作了這些接口，通過 DB_Context 來操作資料庫。
+依賴注入： 在 Program.cs 中將 A_School 類別註冊到 DI 容器中，讓需要使用資料存取的地方可以自動注入並使用這個類別的功能。
+資料庫操作： A_School 類別提供了對資料庫進行 CRUD 操作的具體實作，透過 DB_Context 與 SQL Server 資料庫進行互動。
+
+這段程式碼定義了一個新的資料結構 Union_Data_Struct，位於命名空間 WebApplication_web_01.Models 中。這個類別主要是用來封裝與學生資料相關的兩個屬性，具體說明如下：
+
+
+5. Union_Data_Struct.cs
+
+Union_Data_Struct 類別
+
+namespace WebApplication_web_01.Models
+{
+    public class Union_Data_Struct
+    {
+        public List<db_student_model> student_list { get; set; }
+        public db_student_model student { get; set; }
+    }
+}
+屬性說明：
+student_list (型別：List<db_student_model>)
+
+這個屬性是一個 List，其元素型別為 db_student_model，也就是學生資料的模型。
+這個屬性可以用來儲存多個學生的資料。例如，可以包含查詢出來的所有學生資料，並將其作為一個集合來進行操作或回傳。
+student (型別：db_student_model)
+
+這個屬性儲存單一個學生的資料。db_student_model 是表示單一學生資料的模型，可能包含學生的基本資訊（如姓名、學號、年級等）。
+與 student_list 的集合不同，student 是單個學生物件的實例。
+使用場景：
+Union_Data_Struct 類別通常用於需要同時處理單一學生資料與學生列表的情況。例如：
+
+若在一個操作中，除了返回單一學生的詳細資料外，還需要提供一個學生列表（例如查詢學生資料時需要顯示多個結果），可以使用 Union_Data_Struct 來封裝這兩者。
+在某些 API 回應或資料處理過程中，可能需要這樣的資料結構來返回包含多個學生資料的列表與單一學生資料。
+
+
+------
+
+ UnionController.cs
+ 
+ 用於處理與學生資料有關的 HTTP 請求。該控制器依賴於 Interface_school 來進行資料存取操作，
+ 並透過 Union_Data_Struct 類別來傳遞資料。
+
+控制器說明：
+
+1. 建構子 UnionController
+
+
+public UnionController(Interface_school interface_School)
+{
+    _school = interface_School;
+}
+這個建構子會注入 Interface_school 的實作（例如 A_School）到控制器中，並將其儲存在 _school 變數中。這樣控制器就可以使用 _school 提供的資料存取方法來處理學生資料。
+
+2. Display_all 方法
+
+
+public IActionResult Display_all()
+{
+    var db_student_data = _school.Get();
+
+    Union_Data_Struct data01 = new Union_Data_Struct
+    {
+        student_list = db_student_data.ToList(),
+        student = new db_student_model()
+    };
+
+    return View(data01);
+}
+Display_all 方法負責從資料庫中獲取所有學生資料（通過 _school.Get()），並將其包裝在一個 Union_Data_Struct 物件中，然後傳遞給視圖。
+student_list 屬性會包含所有學生資料的列表，student 屬性是預設的空 db_student_model，可用來顯示或編輯單一學生資料。
+該方法返回一個視圖，並將 Union_Data_Struct 作為模型傳遞給該視圖。
+
+3. Create 方法 (處理 POST 請求)
+
+[HttpPost]
+public IActionResult Create(Union_Data_Struct model)
+{
+    _school.Add(model.student);
+    return RedirectToAction("Display_all");
+}
+Create 方法處理 POST 請求，當表單被提交時，它會呼叫 _school.Add() 方法將新的學生資料（model.student）加入到資料庫中。
+操作完成後，會重定向到 Display_all 方法，以刷新頁面並顯示最新的學生資料。
+
+4. Update 方法 (處理 POST 請求)
+
+[HttpPost]
+public async Task<ActionResult> Update(Union_Data_Struct model)
+{
+    await _school.Update(model.student);
+    return RedirectToAction("Display_all");
+}
+Update 方法處理 POST 請求，當用戶提交更新的學生資料時，它會呼叫 _school.Update() 方法來更新資料庫中的學生資料。
+更新操作完成後，會重定向到 Display_all 方法，刷新頁面。
+
+5. Delete 方法 (處理刪除請求)
+
+public async Task<ActionResult> Delete([Bind(Prefix = "student.student_no")] string id)
+{
+    await _school.Delete(id);
+    return RedirectToAction("Display_all");
+}
+Delete 方法會處理刪除學生的請求。id 是從 URL 中提取的學生編號（student.student_no）。
+方法會呼叫 _school.Delete(id) 來刪除指定 id 的學生資料。
+刪除操作完成後，會重定向回 Display_all 方法，刷新頁面。
+
+6. Delete_userid 方法 (另一個刪除方法)
+
+public async Task<ActionResult> Delete_userid(string id)
+{
+    await _school.Delete(id); 
+    return RedirectToAction("Display_all");
+}
+Delete_userid 方法與 Delete 方法類似，也是用來刪除學生資料的，不同之處在於這裡直接使用 id 參數，而不是從 student.student_no 綁定。
+刪除操作完成後，會重定向到 Display_all 方法，刷新頁面。
+結構和流程概述：
+顯示所有學生資料 (Display_all)：
+
+這個方法會從資料庫中取得所有學生資料，並將其包裝在 Union_Data_Struct 中，然後傳遞給視圖顯示。
+創建學生資料 (Create)：
+
+當用戶提交新增學生的表單時，會將 model.student 的資料儲存到資料庫，並重定向回 Display_all 頁面。
+更新學生資料 (Update)：
+
+當用戶提交更新學生資料的表單時，會將更新的資料儲存到資料庫，並重定向回 Display_all 頁面。
+刪除學生資料 (Delete 和 Delete_userid)：
+
+當用戶請求刪除學生資料時，會根據學生的 id 刪除相對應的資料，並重定向回 Display_all 頁面。
+範例流程：
+顯示所有學生資料：
+
+用戶進入 Display_all 頁面，會顯示所有學生資料，並且可以創建、更新或刪除學生資料。
+新增學生資料：
+
+用戶在 Create 表單中輸入學生資料並提交，資料會被新增到資料庫，然後頁面會重新載入以顯示更新後的學生資料。
+更新學生資料：
+
+用戶在某個學生的編輯表單中更新資料並提交，資料會被更新到資料庫，頁面會重新載入以顯示更新後的資料。
+刪除學生資料：
+
+用戶可以選擇刪除學生資料，當資料被刪除後，頁面會重新載入，顯示刪除後的資料。
+結論：
+這個控制器實現了對學生資料的基本 CRUD 操作（創建、讀取、更新、刪除），並通過 Union_Data_Struct 類別來封裝和傳遞學生資料。每個動作都會在操作後重定向回顯示頁面，確保頁面資料的最新狀態。
+
+
+流程圖
+flowchart TD
+    A[應用程式設定檔(appsettings.json)]
+    B[應用程式啟動與 DI(Program.cs)]
+    C[資料存取介面(Interface_school)]
+    D[資料存取實作>(A_School)]
+    E[資料庫上下文(DB_Context)]
+    F[學生資料模型(db_student_model)]
+    G[聯合資料結構>(Union_Data_Struct)]
+    H[學生資料控制器>(UnionController)]
+    I[SQL Server 資料庫(test)]
+
+    A 應用程式設定檔 (appsettings.json) -- "提供連線字串" --> B 應用程式啟動與 DI (Program.cs)
+    B 應用程式啟動與 DI (Program.cs) -- "設定 DbContext，連接資料庫" --> E 資料庫上下文 (DB_Context)
+    B 應用程式啟動與 DI (Program.cs) -- "註冊依賴注入" --> C 資料存取介面 (Interface_school)
+    C 資料存取介面 (Interface_school) -- "定義 CRUD 操作介面" --> D 資料存取實作 (A_School)
+    D 資料存取實作 (A_School) -- "利用 DB_Context 操作資料庫" --> E 資料庫上下文 (DB_Context)
+    E 資料庫上下文 (DB_Context) -- "連接並提交至資料庫" --> I SQL Server 資料庫 (test)
+    D 資料存取實作 (A_School) -- "針對學生資料進行 CRUD 操作" --> F 學生資料模型 (db_student_model)
+    F 學生資料模型 (db_student_model) -- "封裝到聯合資料結構" --> G 聯合資料結構 (Union_Data_Struct)
+    H 學生資料控制器 (UnionController) -- "透過 DI 注入資料存取介面" --> C 資料存取介面 (Interface_school)
+    H 學生資料控制器 (UnionController) -- "調用 Get() 取得所有資料" --> D 資料存取實作 (A_School)
+    H 學生資料控制器 (UnionController) -- "調用 Add()/Update()/Delete() 處理資料" --> D 資料存取實作 (A_School)
+    D 資料存取實作 (A_School) -- "保存變更至資料庫" --> E 資料庫上下文 (DB_Context)
+    E 資料庫上下文 (DB_Context) -- "提交更新到 SQL Server" --> I SQL Server 資料庫 (test)
+
+說明：
+A 應用程式設定檔 (appsettings.json)
+儲存連線字串等設定，提供後續應用程式使用。
+
+B 應用程式啟動與 DI (Program.cs)
+從 A 讀取設定，設定 DbContext 並進行依賴注入。
+
+C 資料存取介面 (Interface_school)
+定義 CRUD 操作合約，規範資料存取的接口。
+
+D 資料存取實作 (A_School)
+實作 Interface_school，利用 E (DB_Context) 操作資料庫。
+
+E 資料庫上下文 (DB_Context)
+透過 Entity Framework Core 根據連線字串連接 SQL Server 資料庫，管理資料操作。
+
+F 學生資料模型 (db_student_model)
+定義單一學生資料的基本結構，是 CRUD 操作的對象。
+
+G 聯合資料結構 (Union_Data_Struct)
+封裝學生資料集合與單筆資料，方便資料傳遞與展示。
+
+H 學生資料控制器 (UnionController)
+處理 HTTP 請求，透過依賴注入取得資料存取介面，並調用 CRUD 操作。
+
+I SQL Server 資料庫 (test)

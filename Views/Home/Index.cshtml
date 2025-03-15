@@ -1,0 +1,281 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+
+    List<StudentClass> array_obj = new List<StudentClass>
+        {
+            new StudentClass { stu_name = "joe <script>alert('xss')</script>", gender = "male" },
+            new StudentClass { stu_name = "lisa", gender = "female" }
+        };
+
+    // 將 array_obj（這裡是 List<StudentClass> 類型的物件）轉換成 JSON 字串。
+    var json_str = System.Text.Json.JsonSerializer.Serialize(array_obj);
+
+    // 將 JSON 格式的字串 json_str 反序列化回 List<StudentClass> 類型的物件。
+    var stu_list = System.Text.Json.JsonSerializer.Deserialize<List<StudentClass>>(json_str);
+
+    //html 編碼差異性失敗原因:
+    // System.Text.Json.JsonSerializer.Serialize() 在序列化時會自動將特殊字元
+    // 轉換成 Unicode 轉義序列（Unicode escape sequences）。
+    
+    // 所以：
+
+    // 當您的原始字串包含 <script>alert('xss')</script> 時
+    // JsonSerializer.Serialize() 會將它轉換成：
+
+    // Copy\u003Cscript\u003Ealert(\u0027xss\u0027)\u003C/script\u003E
+    // 這裡：
+
+    // \u003C 是 < 的 Unicode 轉義
+    // \u003E 是 > 的 Unicode 轉義
+    // \u0027 是 ' 的 Unicode 轉義
+
+    // 因此，當您使用 @json_str 或 @Html.Raw(json_str) 輸出時，實際上都是在輸出已經被轉義的字串，所以看起來是一樣的。
+
+    // 直接使用字串（不經過 JsonSerializer）就可以解決問題
+    var htmlString = "[{\"stu_name\":\"joe <script>alert('xss')</script>\",\"gender\":\"male\"},{\"stu_name\":\"lisa\",\"gender\":\"female\"}]";
+
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+
+@* 測試 JavaScript 物件 、array to  Json string，傳輸 json 到後台 action  *@
+
+<p id="p1">測試區</p>
+
+
+<div>HTML 編碼輸出 (安全): @htmlString</div>
+<div>未編碼輸出 (可以看到原始 HTML 標籤): @Html.Raw(htmlString)</div>
+
+<!-- 使用 pre 標籤來更清楚地展示差異 -->
+<pre style="background-color: #f5f5f5; padding: 10px; margin: 10px 0;">
+編碼輸出：
+    @htmlString
+
+未編碼輸出：
+    @Html.Raw(htmlString)
+</pre>
+
+<ul>
+    <li>@ViewData["BankId"]</li>
+    <li>@ViewData["BankName"]</li>
+    <li>@ViewData["Deposit"]</li>
+</ul>
+<script>
+
+// 前端傳資料給後端，資料要先從 java script 物件 轉成  json 字串，再用 ajax 把資料丟給 後端
+
+//javascript_obj to string ， javascript 物件   轉  json 字串
+var javascript_obj = {
+        "score":{"math": 100, "english":  40, "physical_education":  65}
+};
+
+var javascript_obj_string = JSON.stringify(javascript_obj);
+
+console.log("javascript_obj   :" +javascript_obj+"\n");
+console.log("javascript_obj  to  string :" +javascript_obj_string+"\n");
+
+
+ //javascript_array to string ， javascript array   轉  json 字串
+ var javascript_array = ["apple","orange","water_melon"];
+
+ var  javascript_array_string = JSON.stringify(javascript_array);
+
+     console.log(" javascript_array   :" + javascript_array+"\n");
+     console.log(" javascript_array  to  string :" + javascript_array_string+"\n");
+
+
+  //java script student string to javascript 物件
+ var javascript_student_str = '{"student_name":  "joe","gender" : "male"  }';
+
+ var  javascript_student = JSON.parse(javascript_student_str);
+
+    console.log(" javascript_student_str   :" + javascript_student_str+"\n");
+    console.log("  javascript_student_str  to  obj  :" +  javascript_student+"\n");
+
+ var javascript_student_length = Object.keys( javascript_student).length;
+ //console.log(" javascript_student_length :"+ javascript_student_length);
+
+   
+    for(var i = 0;i<javascript_student_length;i++ ){
+        var key = Object.keys( javascript_student)[i]
+        console.log(i +" \n");
+        console.log(key +" \n");
+        console.log(javascript_student[key]+"\n");
+    }
+    // 使用 Object.keys(javascript_student) 來取得物件的所有屬性鍵。
+     // Object.keys(javascript_student) 會返回物件的所有屬性名稱（鍵）。
+    // 然後透過 for 迴圈遍歷這些鍵，並使用 javascript_student[key] 來獲取對應的值。
+      console.log("ForEach  : \n");
+      var javascript_student_array_str = '[{"student_name":  "joe","gender" : "male"  }]';
+      var  javascript_student_array  =JSON.parse(  javascript_student_array_str );
+
+      for(var i=0;i<javascript_student_array.length ; i++){
+              console.log(javascript_student_array[i].student_name)
+      }
+
+      
+      //待寫項目  呼叫 action  傳json
+
+      //https://localhost:7133/  原始網址
+      //https://localhost:7133/Home/Test 呼叫後端 action 的 url 
+      // 呼叫action要注意，加上controller得名字，
+      // 原始網址+controller name 、action name
+      // https://localhost:7133/  +  Home/Test
+
+      async function Load_Data(){
+          try{
+              const result  = await fetch(
+                                        'https://localhost:7133/Home/Test',
+                                        {
+                                            method: 'POST',       //使用 POST 方法
+                                            headers: {
+                                                'Content-Type': 'application/json',   // 告訴伺服器這是 JSON 格式
+                                                //'Authorization': token
+                                            },
+                                            body: JSON.stringify({/*  keyword: 'headphones' */ })  // 將參數轉為 JSON 字串
+                                        }
+              );
+                                    // .then(response => response.json()  )
+                                    // .then(data => console.log('結果:', data))
+                                    // .catch(error => console.error('錯誤:', error));
+              if(!result.ok){
+                   throw new Error(`HTTP 錯誤：${result.status}`);
+              }
+                    const data = await result.json(); 
+                    /* result.json() 會自動將伺服器返回的 JSON 資料轉換成 JavaScript 物件 */
+                return data;
+          }
+           catch(error) {
+                console.error('錯誤:', error);       // ✅ 處理錯誤
+                return null;                         // 當錯誤發生時回傳 null
+           }
+   
+      }
+
+      Load_Data().then(data=>{
+
+           console.log('正確結果:',data );
+      });
+       // 撰寫 有參數的 fetch
+    // 當你發出 fetch 請求時，伺服器會返回一個回應物件，
+    // 這個物件包含了狀態資訊（例如狀態碼）以及回應的內容（即伺服器返回的資料）。
+
+    // result 變數儲存了這個回應物件，裡面有 status、headers 等元資料，
+    // 以及實際的回應內容（body）。
+
+    // result.json() 方法會將回應內容（通常是 JSON 格式的字串）解析成 JavaScript 物件。
+    // 換句話說，它會將伺服器返回的 JSON 格式的資料轉換成 JavaScript 可以操作的格式。
+          async function Load_Data0(){
+              try{
+                  const result  = await fetch(
+                                            'https://localhost:7133/Home/Test01',
+                                            {
+                                                method: 'POST',       //使用 POST 方法
+                                                headers: {
+                                                    'Content-Type': 'application/json',   // 告訴伺服器這是 JSON 格式
+                                                    //'Authorization': token
+                                                },
+                                                body: JSON.stringify({
+                                                       stu_name: 'Leon',
+                                                       gender: 'male'
+                                                
+                                                })  // 將參數轉為 JSON 字串
+                                            }
+                  );
+                                        // .then(response => response.json()  )
+                                        // .then(data => console.log('結果:', data))
+                                        // .catch(error => console.error('錯誤:', error));
+                  if(!result.ok){
+                       throw new Error(`HTTP 錯誤：${result.status}`);
+                  }
+                    const data = await result.json();
+                        // result.json()一個用來處理API回應的方法，它可以將API回傳的JSON格式資料轉換為JavaScript物件。
+                    return data;
+              }
+               catch(error) {
+                    console.error('錯誤:', error);       // ✅ 處理錯誤
+                    return null;                         // 當錯誤發生時回傳 null
+               }
+
+          }
+
+          Load_Data0().then(data=>{
+
+                   console.log('正確結果 Test01 :',data );
+          });
+          //傳遞參數，不使用FromBody 和 model，寫在url 的後面，但這有安全性問題
+
+              fetch(
+                        'https://localhost:7133/Home/Test02?stu_name=Leon_lin&gender=male',
+                    {
+                        method: 'POST',       //使用 POST 方法
+                        headers: {
+                            'Content-Type': 'application/json',   // 告訴伺服器這是 JSON 格式
+                            //'Authorization': token
+                        }
+                    }
+              )
+                .then(response => response.json()  )
+                .then(data => console.log('結果:', data))
+                .catch(error => console.error('錯誤:', error));
+
+
+        // 使用 FormData（若傳遞的是表單資料）
+        // 如果你不希望使用 JSON 但還是希望將資料傳遞到 POST 請求中，
+        // 你可以使用 FormData 格式（如同 HTML 表單提交資料）。
+        // 這樣可以直接傳遞資料，而不需要依賴 JSON 格式。
+
+                // const formData = new FormData();
+                // formData.append('stu_name', 'Leon');
+                // formData.append('gender', 'male');
+
+                // fetch('https://localhost:7133/Home/Test03', {
+                //     method: 'POST',
+                //     body: formData  // 使用 FormData 作為請求 body
+                // })
+                //     .then(response => response.json())
+                //     .then(data => console.log(data))
+                //     .catch(error => console.error('Error:', error));
+             
+                   
+        $.ajax({
+                    url: 'https://localhost:7133/Home/ajax_method',
+                    type: 'Post',
+                    dataType: "json",
+                    contentType: 'application/json', // 設定請求內容為 JSON
+                    data: JSON.stringify({'method':"jojo1983"     }),
+                    success: function(response){
+                            console.log("success666 :"+response.method );
+                    },
+                    error: function(xhr, status, error) {
+                    // 失敗後的回應處理
+                    console.log("錯誤:", error);
+                    }
+        
+        });
+
+         const formData1 = new FormData();
+         formData1.append('method', 'jojo1999');
+
+         $.ajax({
+                    url: 'https://localhost:7133/Home/ajax_method1',
+                    type: 'Post',
+                    dataType: "json",
+                    processData: false, 
+                    contentType: false, 
+                    data: formData1,
+                    success: function(response){
+                            console.log("success777 :"+response.method );
+                    },
+                    error: function(xhr, status, error) {
+                    // 失敗後的回應處理
+                    console.log("錯誤:", error);
+                    }
+        
+        });
+        // 待辦13章di、11章 crud
+        
+</script>
