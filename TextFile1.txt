@@ -1,0 +1,3 @@
+﻿1. 在同一個view 顯示 不同struct data 和綁定 model 的情況下，只能用 複合式資料宣告的方法，
+例如: Union_Data_Struct，就是用來 顯示資料 和 後續 crud中   c u d 資料綁定問題 。
+
